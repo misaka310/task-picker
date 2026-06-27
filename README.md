@@ -26,7 +26,16 @@ npm run dev
 ## Firebase設定
 
 初期状態では `firebase-config.js` が `null` なので、ローカル保存のみで動きます。
-Firebase同期を使う場合は、`firebase-config.example.js` を参考に `firebase-config.js` の値を自分のFirebase Webアプリ設定に差し替えてください。
+GitHubにはFirebase実値を書かず、`firebase-config.js` は `export const firebaseConfig = null;` のまま維持します。
+
+RenderでFirebase同期を使う場合は、RenderのEnvironmentに以下を設定します。6つすべてが設定されている場合だけ、サーバーが `/firebase-config.js` でFirebase Web configを生成して返します。1つでも不足している場合は `export const firebaseConfig = null;` を返します。
+
+- `PUBLIC_FIREBASE_API_KEY`
+- `PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `PUBLIC_FIREBASE_PROJECT_ID`
+- `PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `PUBLIC_FIREBASE_APP_ID`
 
 Firebase Console 側で以下を有効化します。
 
@@ -51,7 +60,7 @@ service cloud.firestore {
 - `npm run dev` で `http://localhost:3000` が開けること
 - 未ログイン状態で追加・決定・完了・編集・削除ができること
 - リロード後もローカル保存データが残ること
-- `firebase-config.js` 設定後、Googleログインできること
+- Render環境変数設定後、Googleログインできること
 - 別ブラウザやスマホ相当の画面でFirestore同期されること
 - ログイン前のローカルデータがログイン後にFirestoreへ統合されること
 

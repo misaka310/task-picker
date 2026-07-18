@@ -1,4 +1,5 @@
 import { firebaseConfig } from "./firebase-client-settings.js";
+import { mergeTaskCollections, normalizeTaskItem, visibleTaskItems } from "./sync-core.js";
 
 const STORAGE_KEY = "taskdecision-memo-items";
 const FIREBASE_SDK_VERSION = "10.12.5";
@@ -97,7 +98,7 @@ async function prepareFirebase() {
 
     authModule.onAuthStateChanged(sync.auth, (user) => {
       if (user) {
-        void enableCloudSync(user);
+        void enableCloudSync(user).catch(handlePersistError);
       } else {
         disableCloudSync();
       }
@@ -138,10 +139,9 @@ async function enableCloudSync(user) {
   setStatus("sync", "Google同期中");
   elements.syncButtonText.textContent = user.displayName || "同期中";
   elements.signoutButton.classList.remove("hidden");
-  elements.syncNote.textContent = "この端末の未同期データはクラウドに統合されます";
+  elements.syncNote.textContent = "更新日時を比較して端末とクラウドを統合します";
 
-  const localItems = loadLocalItems();
-  await mergeLocalItemsIntoCloud(localItems);
+  await mergeLocalItemsIntoCloud(loadLocalItems());
   subscribeCloudItems();
 }
 
@@ -160,16 +160,21 @@ function disableCloudSync() {
 }
 
 async function mergeLocalItemsIntoCloud(localItems) {
-  if (!sync.enabled || !localItems.length) return;
-  const { doc, setDoc, serverTimestamp } = sync.api.firestoreModule;
-  const writes = localItems.map((item) => {
-    const normalized = normalizeItem(item);
-    return setDoc(doc(sync.db, "users", sync.user.uid, "items", normalized.id), {
-      ...normalized,
-      syncedAt: serverTimestamp(),
-    }, { merge: true });
-  });
-  await Promise.all(writes);
+  if (!sync.enabled) return;
+  const { collection, doc, getDocs, serverTimestamp, writeBatch } = sync.api.firestoreModule;
+  const collectionRef = collection(sync.db, "users", sync.user.uid, "items");
+  const snapshot = await getDocs(collectionRef);
+  const cloudItems = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+  const merged = mergeTaskCollections(localItems, cloudItems);
+  const batch = writeBatch(sync.db);
+
+  for (const item of merged) {
+    batch.set(doc(collectionRef, item.id), { ...item, syncedAt: serverTimestamp() });
+  }
+  await batch.commit();
+  items = merged;
+  saveLocalItems(items);
+  render();
 }
 
 function subscribeCloudItems() {
@@ -177,7 +182,8 @@ function subscribeCloudItems() {
   const { collection, onSnapshot, orderBy, query } = sync.api.firestoreModule;
   const itemsQuery = query(collection(sync.db, "users", sync.user.uid, "items"), orderBy("createdAt", "desc"));
   sync.unsubscribe = onSnapshot(itemsQuery, (snapshot) => {
-    items = snapshot.docs.map((entry) => normalizeItem({ id: entry.id, ...entry.data() }));
+    const cloudItems = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+    items = mergeTaskCollections(items, cloudItems);
     saveLocalItems(items);
     render();
   }, (error) => {
@@ -192,7 +198,7 @@ function loadLocalItems() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return [];
     const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed.map(normalizeItem) : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeItem).filter((item) => item.id) : [];
   } catch {
     return [];
   }
@@ -202,31 +208,19 @@ function saveLocalItems(nextItems) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextItems));
 }
 
-async function persistItems() {
-  saveLocalItems(items);
-  if (!sync.enabled) return;
-  const { doc, setDoc, serverTimestamp } = sync.api.firestoreModule;
-  await Promise.all(items.map((item) => setDoc(doc(sync.db, "users", sync.user.uid, "items", item.id), {
-    ...item,
-    syncedAt: serverTimestamp(),
-  }, { merge: true })));
-}
-
 async function persistOne(item) {
+  const normalized = normalizeItem(item);
+  const index = items.findIndex((entry) => entry.id === normalized.id);
+  if (index >= 0) items[index] = normalized;
+  else items.unshift(normalized);
   saveLocalItems(items);
   if (!sync.enabled) return;
-  const { doc, setDoc, serverTimestamp } = sync.api.firestoreModule;
-  await setDoc(doc(sync.db, "users", sync.user.uid, "items", item.id), {
-    ...item,
+  const { collection, doc, serverTimestamp, setDoc } = sync.api.firestoreModule;
+  const collectionRef = collection(sync.db, "users", sync.user.uid, "items");
+  await setDoc(doc(collectionRef, normalized.id), {
+    ...normalized,
     syncedAt: serverTimestamp(),
-  }, { merge: true });
-}
-
-async function removeOne(id) {
-  saveLocalItems(items);
-  if (!sync.enabled) return;
-  const { doc, deleteDoc } = sync.api.firestoreModule;
-  await deleteDoc(doc(sync.db, "users", sync.user.uid, "items", id));
+  });
 }
 
 function makeId() {
@@ -235,21 +229,7 @@ function makeId() {
 }
 
 function normalizeItem(item) {
-  const now = new Date().toISOString();
-  return {
-    id: String(item.id || makeId()),
-    text: String(item.text || "").trim(),
-    createdAt: toIsoString(item.createdAt || now),
-    updatedAt: toIsoString(item.updatedAt || item.createdAt || now),
-    done: Boolean(item.done),
-  };
-}
-
-function toIsoString(value) {
-  if (typeof value === "string") return value;
-  if (value?.toDate) return value.toDate().toISOString();
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+  return normalizeTaskItem({ ...item, id: item.id || makeId() });
 }
 
 function formatDate(value) {
@@ -268,7 +248,7 @@ function addItem() {
     return;
   }
   const now = new Date().toISOString();
-  const item = { id: makeId(), text, createdAt: now, updatedAt: now, done: false };
+  const item = normalizeItem({ id: makeId(), text, createdAt: now, updatedAt: now, done: false, deletedAt: null });
   items.unshift(item);
   elements.input.value = "";
   void persistOne(item).catch(handlePersistError);
@@ -277,7 +257,7 @@ function addItem() {
 }
 
 function decideItem() {
-  const candidates = items.filter((item) => !item.done);
+  const candidates = visibleTaskItems(items).filter((item) => !item.done);
   if (candidates.length === 0) {
     currentDecisionId = null;
     renderResult(null);
@@ -294,7 +274,7 @@ function clearDecision() {
 }
 
 function markDone(id) {
-  const item = items.find((entry) => entry.id === id);
+  const item = items.find((entry) => entry.id === id && !entry.deletedAt);
   if (!item) return;
   item.done = true;
   item.updatedAt = new Date().toISOString();
@@ -304,9 +284,14 @@ function markDone(id) {
 }
 
 function deleteItem(id) {
-  items = items.filter((item) => item.id !== id);
+  const item = items.find((entry) => entry.id === id && !entry.deletedAt);
+  if (!item) return;
+  const deletedAt = new Date().toISOString();
+  item.deletedAt = deletedAt;
+  item.updatedAt = deletedAt;
   if (currentDecisionId === id) currentDecisionId = null;
-  void removeOne(id).catch(handlePersistError);
+  if (editingItemId === id) editingItemId = null;
+  void persistOne(item).catch(handlePersistError);
   render();
 }
 
@@ -322,7 +307,7 @@ function handleListAction(event) {
 }
 
 function startEdit(id) {
-  if (!items.some((item) => item.id === id && !item.done)) return;
+  if (!items.some((item) => item.id === id && !item.done && !item.deletedAt)) return;
   editingItemId = id;
   render();
   const input = document.querySelector(`[data-edit-input="${cssEscape(id)}"]`);
@@ -342,7 +327,7 @@ function saveEdit(id) {
     input?.focus();
     return;
   }
-  const item = items.find((entry) => entry.id === id && !entry.done);
+  const item = items.find((entry) => entry.id === id && !entry.done && !entry.deletedAt);
   if (!item) return;
   item.text = nextText;
   item.updatedAt = new Date().toISOString();
@@ -353,7 +338,7 @@ function saveEdit(id) {
 
 function cssEscape(value) {
   if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(value);
-  return String(value).replaceAll('"', '\"');
+  return String(value).replaceAll('"', '\\"');
 }
 
 function handlePersistError(error) {
@@ -363,13 +348,14 @@ function handlePersistError(error) {
 }
 
 function render() {
-  const pendingItems = items.filter((item) => !item.done);
-  const doneItems = items.filter((item) => item.done);
+  const visibleItems = visibleTaskItems(items);
+  const pendingItems = visibleItems.filter((item) => !item.done);
+  const doneItems = visibleItems.filter((item) => item.done);
   elements.pendingCount.textContent = String(pendingItems.length);
   elements.doneCount.textContent = String(doneItems.length);
   renderList(elements.pendingList, pendingItems, false);
   renderList(elements.doneList, doneItems, true);
-  const currentDecision = items.find((item) => item.id === currentDecisionId && !item.done);
+  const currentDecision = visibleItems.find((item) => item.id === currentDecisionId && !item.done);
   renderResult(currentDecision ?? null);
 }
 

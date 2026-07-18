@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",
+    "lint": "node scripts/lint.mjs",
+    "typecheck": "npx --yes -p typescript@5.8.3 tsc --project jsconfig.json",
+    "test": "node --test --experimental-test-coverage --test-coverage-lines=80 tests/*.test.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "build": "node scripts/build-static-site.mjs"
   }
 }

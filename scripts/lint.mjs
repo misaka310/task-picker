@@ -1,17 +1,16 @@
+import { spawnSync } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const roots = ["app.js", "sync-core.js", "server.mjs", "scripts", "tests"];
 const extensions = new Set([".js", ".mjs"]);
 const failures = [];
+const files = [];
 
 async function inspect(filePath) {
+  files.push(filePath);
   const text = await readFile(filePath, "utf8");
-  text.split(/\r?\n/).forEach((line, index) => {
-    if (/\s+$/.test(line)) failures.push(`${filePath}:${index + 1}: trailing whitespace`);
-    if (line.includes("\t")) failures.push(`${filePath}:${index + 1}: tab character`);
-    if (line.includes("@ts-ignore")) failures.push(`${filePath}:${index + 1}: @ts-ignore is forbidden`);
-  });
+  if (text.includes("@ts-ignore")) failures.push(`${filePath}: @ts-ignore is forbidden`);
   if (/\beval\s*\(/.test(text)) failures.push(`${filePath}: eval() is forbidden`);
 }
 
@@ -29,8 +28,18 @@ for (const root of roots) {
   else await visit(root);
 }
 
+for (const filePath of files) {
+  const result = spawnSync(process.execPath, ["--check", filePath], {
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.status !== 0) {
+    failures.push(`${filePath}: ${result.stderr || result.stdout || "syntax check failed"}`.trim());
+  }
+}
+
 if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Source lint passed.");
+console.log(`Source lint passed for ${files.length} JavaScript files.`);

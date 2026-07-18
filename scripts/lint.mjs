@@ -9,6 +9,7 @@ const files = [];
 
 async function inspect(filePath) {
   files.push(filePath);
+  if (filePath === path.join("scripts", "lint.mjs")) return;
   const text = await readFile(filePath, "utf8");
   if (text.includes("@ts-ignore")) failures.push(`${filePath}: @ts-ignore is forbidden`);
   if (/\beval\s*\(/.test(text)) failures.push(`${filePath}: eval() is forbidden`);

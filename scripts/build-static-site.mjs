@@ -103,7 +103,7 @@ async function copyStaticFiles(sourceDir, targetDir, isRoot = false) {
 
 await rm(dist, { recursive: true, force: true });
 await copyStaticFiles(root, dist, true);
-await writeFile(path.join(dist, "firebase-config.js"), buildFirebaseConfigScript(), "utf8");
+await writeFile(path.join(dist, "firebase-client-settings.js"), buildFirebaseConfigScript(), "utf8");
 
 const indexPath = path.join(dist, "index.html");
 await stat(indexPath);

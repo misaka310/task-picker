@@ -30,14 +30,14 @@ npm run build
 ```
 
 `dist/` に静的ファイルを出力します。
-Render Static Site では `server.mjs` は実行されないため、Firebase設定はアクセス時ではなくビルド時に `dist/firebase-config.js` へ生成します。
+Render Static Site では `server.mjs` は実行されないため、Firebase設定はアクセス時ではなくビルド時に `dist/firebase-client-settings.js` へ生成します。
 
 ## Firebase設定
 
-初期状態では `firebase-config.js` が `export const firebaseConfig = null;` なので、ローカル保存のみで動きます。
-GitHubにはFirebase実値を書かず、リポジトリ直下の `firebase-config.js` は `export const firebaseConfig = null;` のまま維持します。
+初期状態では `firebase-client-settings.js` が `export const firebaseConfig = null;` なので、ローカル保存のみで動きます。
+GitHubにはFirebase実値を書かず、リポジトリ直下の `firebase-client-settings.js` は `export const firebaseConfig = null;` のまま維持します。
 
-Render Static SiteでFirebase同期を使う場合は、RenderのEnvironment Variablesに以下を設定します。6つすべてが設定されている場合だけ、`npm run build` が `dist/firebase-config.js` にFirebase Web configを生成します。1つでも不足している場合は `export const firebaseConfig = null;` を生成します。
+Render Static SiteでFirebase同期を使う場合は、RenderのEnvironment Variablesに以下を設定します。6つすべてが設定されている場合だけ、`npm run build` が `dist/firebase-client-settings.js` にFirebase Web configを生成します。1つでも不足している場合は `export const firebaseConfig = null;` を生成します。
 
 - `PUBLIC_FIREBASE_API_KEY`
 - `PUBLIC_FIREBASE_AUTH_DOMAIN`
@@ -46,7 +46,7 @@ Render Static SiteでFirebase同期を使う場合は、RenderのEnvironment Var
 - `PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `PUBLIC_FIREBASE_APP_ID`
 
-Firebase Web configはブラウザでFirebaseを使うための公開設定です。GitHubには書かずRenderのビルド時だけ使いますが、公開サイトの `/firebase-config.js` からは見えます。保護する本体はFirestore Security Rules、Authentication設定、API key制限です。
+Firebase Web configはブラウザでFirebaseを使うための公開設定です。GitHubには書かずRenderのビルド時だけ使いますが、公開サイトの `/firebase-client-settings.js` からは見えます。保護する本体はFirestore Security Rules、Authentication設定、API key制限です。
 
 ## Render Static Site 設定
 
@@ -59,7 +59,7 @@ Renderの対象サービスをStatic Siteとして運用する場合は以下に
 環境変数を変更した後は再デプロイします。デプロイ後に以下を開き、`null` ではなくobjectが返ればRenderの環境変数は反映されています。
 
 ```txt
-https://task-picker.onrender.com/firebase-config.js
+https://task-picker.onrender.com/firebase-client-settings.js
 ```
 
 `export const firebaseConfig = null;` のままなら、Renderの環境変数不足、Build Command未設定、Publish Directory未設定、または再デプロイ未実施です。
@@ -93,7 +93,7 @@ service cloud.firestore {
 - Render Static Site のPublish Directoryが `dist` になっていること
 - 未ログイン状態で追加・決定・完了・編集・削除ができること
 - リロード後もローカル保存データが残ること
-- Render環境変数設定後、`/firebase-config.js` がobjectを返すこと
+- Render環境変数設定後、`/firebase-client-settings.js` がobjectを返すこと
 - Googleログインできること
 - 別ブラウザやスマホ相当の画面でFirestore同期されること
 - ログイン前のローカルデータがログイン後にFirestoreへ統合されること

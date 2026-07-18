@@ -1,4 +1,4 @@
-import { firebaseConfig } from "./firebase-config.js";
+import { firebaseConfig } from "./firebase-client-settings.js";
 
 const STORAGE_KEY = "taskdecision-memo-items";
 const FIREBASE_SDK_VERSION = "10.12.5";
@@ -111,7 +111,7 @@ async function prepareFirebase() {
 
 async function signInWithGoogle() {
   if (!sync.ready) {
-    showToast(hasFirebaseConfig() ? "Firebaseを読み込み中です" : "firebase-config.js にFirebase設定を入れてください");
+    showToast(hasFirebaseConfig() ? "Firebaseを読み込み中です" : "firebase-client-settings.js にFirebase設定を入れてください");
     return;
   }
   try {

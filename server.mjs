@@ -47,7 +47,7 @@ createServer(async (req, res) => {
   try {
     const requestPath = new URL(req.url || "/", `http://localhost:${port}`).pathname;
 
-    if (req.method === "GET" && requestPath === "/firebase-config.js") {
+    if (req.method === "GET" && requestPath === "/firebase-client-settings.js") {
       res.writeHead(200, {
         "Content-Type": "application/javascript; charset=utf-8",
         "Cache-Control": "no-store",

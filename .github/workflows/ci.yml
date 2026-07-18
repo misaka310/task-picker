@@ -17,5 +17,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Lint, typecheck, test with coverage, and build
-        run: npm run check
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test with coverage
+        run: npm test
+      - name: Build static site
+        run: npm run build

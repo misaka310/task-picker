@@ -1,5 +1,7 @@
 # 今日の一択メモ / task-picker
 
+[![CI](https://github.com/misaka310/task-picker/actions/workflows/ci.yml/badge.svg)](https://github.com/misaka310/task-picker/actions/workflows/ci.yml)
+
 タスクを追加して、未完了タスクからランダムに1件を決めるシンプルなメモアプリです。
 未ログインでもブラウザ内に保存でき、必要な場合だけGoogleログインでFirebaseへ同期できます。
 
@@ -13,7 +15,19 @@ https://task-picker.onrender.com/
 - 未完了タスクからランダムに1件を選択
 - 未ログイン時は `localStorage` に保存
 - Googleログイン後は Firebase Authentication + Firestore に同期
-- ログイン時、端末内のローカルデータをFirestoreへ統合
+- ログイン時、端末内のローカルデータとFirestoreを競合解決して統合
+
+## 同期競合の扱い
+
+同期の正本は`sync-core.js`です。ローカルとFirestoreの同じIDを比較し、`deletedAt ?? updatedAt`が新しい方を採用します。
+
+- 新しい編集は古い編集を上書き
+- 新しい削除はtombstoneとして保持し、別端末の古いコピーによる復活を防止
+- 削除より新しい編集がある場合、その編集を保持
+- 更新時刻が完全に同じ場合は削除を優先
+- Firestore TimestampとISO文字列を同じ形式へ正規化
+
+削除済み項目は画面には表示しませんが、端末間の収束に必要なため同期データには残します。将来tombstoneを整理する場合は、全端末が削除を観測したと判断できるサーバー側ポリシーが必要です。
 
 ## 起動
 
@@ -31,6 +45,17 @@ npm run build
 
 `dist/` に静的ファイルを出力します。
 Render Static Site では `server.mjs` は実行されないため、Firebase設定はアクセス時ではなくビルド時に `dist/firebase-client-settings.js` へ生成します。
+
+## 開発と検証
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+`npm test`はNode.jsのV8 coverageを使用し、同期中核に80%のline coverageを要求します。GitHub Actionsではlint、型検査、競合解決テスト、静的ビルドをpull requestごとに実行します。
 
 ## Firebase設定
 

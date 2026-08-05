@@ -5,6 +5,12 @@
 タスクを追加して、未完了タスクからランダムに1件を決めるシンプルなメモアプリです。
 未ログインでもブラウザ内に保存でき、必要な場合だけGoogleログインでFirebaseへ同期できます。
 
+<p align="center">
+  <img src="docs/images/system-overview.png" alt="今日の一択メモの利用フロー概要" width="100%">
+</p>
+
+ログインなしのローカル利用と、任意のGoogleログインによる端末間同期を分けて示しています。
+
 ## Demo
 
 https://task-picker.onrender.com/

@@ -25,6 +25,8 @@ https://task-picker.onrender.com/
 
 ## 起動
 
+Node.js 22以上が必要です。
+
 ```bash
 npm run dev
 ```

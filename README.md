@@ -75,6 +75,10 @@ Render Static SiteでFirebase同期を使う場合は、RenderのEnvironment Var
 
 Firebase Web configはブラウザでFirebaseを使うための公開設定です。GitHubには書かずRenderのビルド時だけ使いますが、公開サイトの `/firebase-client-settings.js` からは見えます。保護する本体はFirestore Security Rules、Authentication設定、API key制限です。
 
+### ローカルでFirebase同期を試す
+
+`npm run dev`で起動する`server.mjs`も、Renderと同じ6つの環境変数（`PUBLIC_FIREBASE_*`）からFirebase Web configを動的に生成します。ローカル端末のシェルでこれらを設定してから`npm run dev`を起動すれば、`http://localhost:3000/firebase-client-settings.js`が同様にobjectを返し、Firebase同期を確認できます。設定しない場合は`export const firebaseConfig = null;`を返し、ローカル保存のみで動作します。
+
 ## Render Static Site 設定
 
 Renderの対象サービスをStatic Siteとして運用する場合は以下にします。

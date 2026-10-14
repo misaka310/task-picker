@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4efe6" />
+    <title>今日の一択メモ</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="background-overlay" aria-hidden="true"></div>
+    <main class="app-shell">
+      <header class="app-header">
+        <div class="brand-block">
+          <p class="eyebrow">ミニWEBアプリ</p>
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">一</div>
+            <div>
+              <h1>今日の一択メモ</h1>
+              <p class="brand-subtitle">やりたいことを貯めて、迷わず1つ決める</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="sync-area" aria-label="同期状態">
+          <span id="save-status" class="status-pill local"><span></span>ローカル保存中</span>
+          <button id="sync-button" class="sync-button" type="button">
+            <span class="google-mark" aria-hidden="true">G</span>
+            <span id="sync-button-text">Googleで同期</span>
+          </button>
+          <button id="signout-button" class="ghost-button hidden" type="button">ログアウト</button>
+          <p id="sync-note" class="sync-note">同期したい人だけログイン</p>
+        </div>
+      </header>
+
+      <section class="composer" aria-label="項目の追加">
+        <div class="composer-row">
+          <button class="round-plus" id="focus-input-button" type="button" aria-label="入力欄に移動">+</button>
+          <input id="task-input" class="text-input" type="text" placeholder="例: 部屋の片付け" maxlength="120" />
+          <button id="add-button" class="primary-button" type="button">追加</button>
+        </div>
+      </section>
+
+      <section class="decision-row" aria-label="今やることを決める">
+        <button id="decide-button" class="decision-button" type="button">今やることを決める</button>
+        <div id="result-area" class="result-area" aria-live="polite"></div>
+      </section>
+
+      <section class="lists-grid" aria-label="タスク一覧">
+        <section class="list-panel pending-panel" aria-label="未完了一覧">
+          <button class="panel-title-row" type="button" data-toggle="pending">
+            <span>未完了 <span id="pending-count" class="count-badge">0</span></span>
+            <span class="chevron" aria-hidden="true">⌃</span>
+          </button>
+          <div id="pending-list" class="item-list"></div>
+        </section>
+
+        <section class="list-panel done-panel" aria-label="完了済み一覧">
+          <button class="panel-title-row" type="button" data-toggle="done">
+            <span>完了済み <span id="done-count" class="count-badge muted">0</span></span>
+            <span class="chevron" aria-hidden="true">⌃</span>
+          </button>
+          <div id="done-list" class="item-list"></div>
+        </section>
+      </section>
+
+      <p class="footer-copy">迷いを減らして、すぐ始めるためのメモ。</p>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

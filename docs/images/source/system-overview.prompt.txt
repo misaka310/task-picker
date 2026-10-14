@@ -1,0 +1,12 @@
+Create an extremely clear web-app capability diagram for a GitHub README, exactly 1536x1024, 3:2 landscape, white background, dark navy text, restrained violet, blue, and teal accents, very large rounded cards, large Japanese labels, no logos, no watermark, no decorative clutter. Title: 「今日の一択メモ のしくみ」. Use one local main flow and one independent optional sync panel. No arrow from the final chosen task to login, no crossed arrows, no tiny text.
+
+LOCAL MAIN FLOW, solid arrows, left to right:
+「タスクを追加」 → 「未完了タスク一覧」 → 「ランダムに1件を選ぶ」 → 「今日やる1件」.
+Inside the list card include exactly three large operations: 「編集」, 「完了」, 「削除」.
+Below the whole local flow place one wide storage card 「localStorage　ログインなしで全機能を利用」. Connect the local task flow to this storage card with one short solid downward arrow from the central list card. Do not connect 「今日やる1件」 to login or cloud sync.
+
+OPTIONAL SYNC PANEL, visually separate on the lower right, heading 「任意：Googleログイン / 端末間同期」:
+「Googleログイン」 → 「Firebase Authentication」 → 「Firestore 同期」.
+Connect 「localStorage」 and 「Firestore 同期」 with one clear two-way arrow labeled in large text: 「更新時刻でマージ」. Add one large note beside that arrow: 「削除はtombstoneを同期」. Add one note inside the cloud panel: 「ログイン時だけ端末間同期」.
+
+All labels, including tombstone and merge rules, must remain comfortably readable at 750px display width. Use no additional nodes, step numbers, arrows, or explanatory text.

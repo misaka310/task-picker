@@ -81,3 +81,24 @@ export function mergeTaskCollections(localItems, cloudItems) {
 export function visibleTaskItems(items) {
   return items.filter((item) => !item.deletedAt);
 }
+
+/** Firestore rejects a write batch with more than 500 operations. */
+export const FIRESTORE_BATCH_LIMIT = 500;
+
+/**
+ * Split items into chunks of at most `size`, so a merge with many tasks and
+ * retained tombstones can be written in several batches.
+ * @template T
+ * @param {T[]} list
+ * @param {number} [size]
+ * @returns {T[][]}
+ */
+export function chunkItems(list, size = FIRESTORE_BATCH_LIMIT) {
+  if (!Number.isInteger(size) || size < 1) throw new RangeError("size must be a positive integer");
+  /** @type {T[][]} */
+  const chunks = [];
+  for (let index = 0; index < list.length; index += size) {
+    chunks.push(list.slice(index, index + size));
+  }
+  return chunks;
+}

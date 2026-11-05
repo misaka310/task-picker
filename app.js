@@ -1,5 +1,5 @@
 import { firebaseConfig } from "./firebase-client-settings.js";
-import { mergeTaskCollections, normalizeTaskItem, visibleTaskItems } from "./sync-core.js";
+import { chunkItems, mergeTaskCollections, normalizeTaskItem, visibleTaskItems } from "./sync-core.js";
 
 const STORAGE_KEY = "taskdecision-memo-items";
 const FIREBASE_SDK_VERSION = "10.12.5";
@@ -166,12 +166,15 @@ async function mergeLocalItemsIntoCloud(localItems) {
   const snapshot = await getDocs(collectionRef);
   const cloudItems = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
   const merged = mergeTaskCollections(localItems, cloudItems);
-  const batch = writeBatch(sync.db);
-
-  for (const item of merged) {
-    batch.set(doc(collectionRef, item.id), { ...item, syncedAt: serverTimestamp() });
+  // Tombstones are kept forever (docs/sync.md), so the merged list can exceed
+  // Firestore's 500-writes-per-batch limit; write it in chunks.
+  for (const chunk of chunkItems(merged)) {
+    const batch = writeBatch(sync.db);
+    for (const item of chunk) {
+      batch.set(doc(collectionRef, item.id), { ...item, syncedAt: serverTimestamp() });
+    }
+    await batch.commit();
   }
-  await batch.commit();
   items = merged;
   saveLocalItems(items);
   render();
@@ -372,18 +375,18 @@ function renderList(container, list, isDoneList) {
           ${leading}
           <div class="edit-form">
             <input class="edit-input" data-edit-input="${escapeHtml(item.id)}" value="${escapeHtml(item.text)}" maxlength="120" aria-label="タスクを編集" />
-            <button class="item-action save" type="button" data-action="save-edit" data-id="${item.id}">保存</button>
-            <button class="item-action cancel" type="button" data-action="cancel-edit" data-id="${item.id}">取消</button>
+            <button class="item-action save" type="button" data-action="save-edit" data-id="${escapeHtml(item.id)}">保存</button>
+            <button class="item-action cancel" type="button" data-action="cancel-edit" data-id="${escapeHtml(item.id)}">取消</button>
           </div>
         </article>
       `;
     }
     const actions = isDoneList
-      ? `<button class="item-action delete" type="button" data-action="delete" data-id="${item.id}" aria-label="削除">削除</button>`
+      ? `<button class="item-action delete" type="button" data-action="delete" data-id="${escapeHtml(item.id)}" aria-label="削除">削除</button>`
       : `
-          <button class="item-action complete" type="button" data-action="done" data-id="${item.id}">完了</button>
-          <button class="item-action edit" type="button" data-action="edit" data-id="${item.id}">編集</button>
-          <button class="item-action delete" type="button" data-action="delete" data-id="${item.id}">削除</button>
+          <button class="item-action complete" type="button" data-action="done" data-id="${escapeHtml(item.id)}">完了</button>
+          <button class="item-action edit" type="button" data-action="edit" data-id="${escapeHtml(item.id)}">編集</button>
+          <button class="item-action delete" type="button" data-action="delete" data-id="${escapeHtml(item.id)}">削除</button>
         `;
     return `
       <article class="item-card ${isDoneList ? "done" : "pending"}">
@@ -413,7 +416,7 @@ function renderResult(item) {
         <p class="result-text">${escapeHtml(item.text)}</p>
       </div>
       <div class="result-actions">
-        <button class="item-action complete" type="button" data-action="complete" data-id="${item.id}">完了</button>
+        <button class="item-action complete" type="button" data-action="complete" data-id="${escapeHtml(item.id)}">完了</button>
         <button class="item-action" type="button" data-action="close">あとで</button>
       </div>
     </div>

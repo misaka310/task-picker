@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   chooseNewestTaskItem,
+  chunkItems,
+  FIRESTORE_BATCH_LIMIT,
   mergeTaskCollections,
   normalizeTaskItem,
   visibleTaskItems,
@@ -56,4 +58,15 @@ test("cloud timestamp values are normalized", () => {
     updatedAt: { toDate: () => new Date("2026-07-06T12:34:56.000Z") },
   });
   assert.equal(normalized.updatedAt, "2026-07-06T12:34:56.000Z");
+});
+
+test("chunkItems keeps every write batch within the Firestore limit", () => {
+  const list = Array.from({ length: 1201 }, (_, index) => index);
+  const chunks = chunkItems(list);
+  assert.deepEqual(chunks.map((chunk) => chunk.length), [500, 500, 201]);
+  assert.ok(chunks.every((chunk) => chunk.length <= FIRESTORE_BATCH_LIMIT));
+  assert.deepEqual(chunks.flat(), list);
+  assert.deepEqual(chunkItems([]), []);
+  assert.deepEqual(chunkItems([1, 2, 3], 2), [[1, 2], [3]]);
+  assert.throws(() => chunkItems([1], 0), RangeError);
 });

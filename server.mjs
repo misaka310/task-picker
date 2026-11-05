@@ -57,6 +57,16 @@ createServer(async (req, res) => {
     }
 
     const filePath = path.join(root, requestPath === "/" ? "index.html" : requestPath);
+    // Never serve dotfiles or dot-directories such as .git/ or .env, or
+    // anything outside the project root.
+    const relativePath = path.relative(root, filePath);
+    if (
+      relativePath.startsWith("..") ||
+      path.isAbsolute(relativePath) ||
+      relativePath.split(path.sep).some((segment) => segment.startsWith("."))
+    ) {
+      throw new Error("Not served");
+    }
     const stats = await stat(filePath);
 
     if (!stats.isFile()) {

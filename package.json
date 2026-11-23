@@ -16,6 +16,6 @@
     "build": "node scripts/build-static-site.mjs"
   },
   "devDependencies": {
-    "fast-check": "4.10.2"
+    "fast-check": "4.10.3"
   }
 }
